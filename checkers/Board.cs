@@ -9,7 +9,8 @@ namespace gabi.checkers
     {
 
         private const int Size = 8;
-        
+        private const ulong ValueToShift = 1;
+
 
         private Square[,] _squares = new Square[Size, Size];
 
@@ -23,7 +24,13 @@ namespace gabi.checkers
             {
                 for (var j = 0; j < Size; j++)
                 {
+                    if (_squares[i, j].Value != null && _squares[i, j].Value.IsChecker)
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkCyan;
+                    }
+
                     Console.Write(_squares[i, j]);
+                    Console.ResetColor();
                 }
 
                 Console.WriteLine("");
@@ -103,6 +110,8 @@ namespace gabi.checkers
             _squares[newX, newY].SetValue(square.Value);
             square.SetValue(null);
 
+            CheckerValidation(_squares[newX, newY]);
+
             return true;
         }
 
@@ -124,12 +133,27 @@ namespace gabi.checkers
                 List<Tuple<int, int>> targets = new List<Tuple<int, int>>(2);
                 List<Tuple<int, int>> destinations = new List<Tuple<int, int>>(2);
 
-                targets.Add(new Tuple<int, int>(i + verticalDirection, j + 1));
-                targets.Add(new Tuple<int, int>(i + verticalDirection, j - 1));
+                if (_squares[i, j].Value.IsChecker)
+                {
+                    targets.Add(new Tuple<int, int>(i + 1, j + 1));
+                    targets.Add(new Tuple<int, int>(i + 1, j - 1));
+                    targets.Add(new Tuple<int, int>(i - 1, j + 1));
+                    targets.Add(new Tuple<int, int>(i - 1, j - 1));
 
-                destinations.Add(new Tuple<int, int>(i + verticalDirection + verticalDirection, j + 2));
-                destinations.Add(new Tuple<int, int>(i + verticalDirection + verticalDirection, j - 2));
 
+                    destinations.Add(new Tuple<int, int>(i + 2, j + 2));
+                    destinations.Add(new Tuple<int, int>(i + 2, j - 2));
+                    destinations.Add(new Tuple<int, int>(i - 2, j + 2));
+                    destinations.Add(new Tuple<int, int>(i - 2, j - 2));
+                }
+                else
+                {
+                    targets.Add(new Tuple<int, int>(i + verticalDirection, j + 1));
+                    targets.Add(new Tuple<int, int>(i + verticalDirection, j - 1));
+
+                    destinations.Add(new Tuple<int, int>(i + verticalDirection + verticalDirection, j + 2));
+                    destinations.Add(new Tuple<int, int>(i + verticalDirection + verticalDirection, j - 2));
+                }
 
                 for (var k = 0; k < targets.Count; k++)
                 {
@@ -185,7 +209,105 @@ namespace gabi.checkers
             var playerPiece = origin.Value;
             target.SetValue(null);
             origin.SetValue(null);
+
             _squares[newX, newY].SetValue(playerPiece);
+            CheckerValidation(_squares[newX, newY]);
+        }
+
+        public void CheckerValidation(Square square)
+        {
+            if (square.Value == null) return;
+
+            var pieceColor = square.Value.Color;
+
+            if ((pieceColor == PieceColor.Black && square.X == 0) ||
+                (pieceColor == PieceColor.White && square.X == 7))
+            {
+                square.Value.IsChecker = true;
+            }
+        }
+
+        public BoardId GetState()
+        {
+            BoardId id = new BoardId();
+            int count = 0;
+
+            for (var i = 0; i < Size; i++)
+            {
+                for (var j = 0; j < Size; j++)
+                {
+                    if (_squares[i, j].Value != null)
+                    {
+                        ulong shifted = ValueToShift << count;
+
+                        if (_squares[i, j].Value.Color == PieceColor.Black)
+                        {
+                            if (!_squares[i, j].Value.IsChecker)
+                            {
+                                id.Black |= shifted;
+                            }
+                            else
+                            {
+                                id.BlackCheckers |= shifted;
+                            }
+                        }
+                        else if (_squares[i, j].Value.Color == PieceColor.White)
+                        {
+                            if (!_squares[i, j].Value.IsChecker)
+                            {
+                                id.White |= shifted;
+                            }
+                            else
+                            {
+                                id.WhiteCheckers |= shifted;
+                            }
+                        }
+                    }
+
+                    count++;
+                }
+            }
+
+            return id;
+        }
+
+        public void SetState(BoardId id)
+        {
+            ClearBoard();
+            int count = 0;
+
+            for (var i = 0; i < Size; i++)
+            {
+                for (var j = 0; j < Size; j++)
+                {
+                    ulong shifted = ValueToShift << count;
+
+                    if ((id.White & shifted) != 0)
+                    {
+                        _squares[i, j].SetValue(PieceColor.White);
+                    }
+                    else if ((id.WhiteCheckers & shifted) != 0)
+                    {
+                        _squares[i, j].SetValue(new Piece(PieceColor.White)
+                        {
+                            IsChecker = true
+                        });
+                    }
+                    else if ((id.Black & shifted) != 0)
+                    {
+                        _squares[i, j].SetValue(PieceColor.Black);
+                    }
+                    else if ((id.BlackCheckers & shifted) != 0)
+                    {
+                        _squares[i, j].SetValue(new Piece(PieceColor.Black)
+                        {
+                            IsChecker = true
+                        });
+                    }
+
+                    count++;
+                }
+            }
         }
     }
 }

@@ -13,21 +13,31 @@ namespace gabi.checkers
 
         private Logic _current;
 
+        public Statistics Statistics { get; }
+
         public Counter(Logic p1, Logic p2)
         {
             _p1 = p1;
             _p2 = p2;
 
-            _current = p1.Color == PieceColor.White ? p1 : p2;
+            Statistics = new Statistics();
+            Reset();
         }
 
         public void Start()
         {
-            while (true)
+            while (!_current.Go())
             {
-                _current.Go();
                 NextTurn();
-                Console.ReadKey();
+            }
+
+            if (_turn)
+            {
+                Statistics.Play2Win();
+            }
+            else
+            {
+                Statistics.Play1Win();
             }
         }
 
@@ -35,6 +45,14 @@ namespace gabi.checkers
         {
             _turn = !_turn;
             _current = _turn ? _p2 : _p1;
+        }
+
+        public void Reset()
+        {
+            Statistics.RegisterMatch();
+
+            _current = _p1.Color == PieceColor.White ? _p1 : _p2;
+            _turn = false;
         }
     }
 }

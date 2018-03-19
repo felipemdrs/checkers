@@ -6,7 +6,7 @@ namespace gabi.checkers
     public class Logic
     {
         public PieceColor Color { get; }
-
+        
         private readonly Board _board;
         private readonly Random rnd = new Random();
 
@@ -21,35 +21,51 @@ namespace gabi.checkers
             _board.GetPieces(Color);
         }
 
-        public void Go()
+        public bool Go()
         {
-            var isValid = false;
+            bool lose = _board.GetPieces(Color).Length == 0;
 
-            var obrigatory = _board.Obrigatory(Color);
-
-            if (obrigatory != null)
+            if (!lose)
             {
-                while (obrigatory != null)
+                var isValid = false;
+
+                var obrigatory = _board.Obrigatory(Color);
+
+                if (obrigatory != null)
                 {
-                    _board.Capture(obrigatory.Item1, obrigatory.Item2, obrigatory.Item3, obrigatory.Item4);
-                    obrigatory = _board.Obrigatory(Color);
+                    string pieceId = obrigatory.Item1.Value.Id;
+
+                    while (obrigatory != null)
+                    {
+                        _board.Capture(obrigatory.Item1, obrigatory.Item2, obrigatory.Item3, obrigatory.Item4);
+                        obrigatory = _board.Obrigatory(Color);
+
+                        if (obrigatory != null && pieceId != obrigatory.Item1.Value.Id) break;
+                    }
+                }
+                else
+                {
+                    var timeOut = 1000;
+
+                    while (!isValid)
+                    {
+                        var rows = _board.GetPieces(Color);
+                        var square = rows.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
+
+                        var newX = square.X + square.GetVerticalDirection();
+                        var newY = square.Y + GetRandoHorizontalDirection();
+
+                        isValid = _board.Move(square, newX, newY);
+
+                        if (--timeOut == 0)
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
-            else
-            {
-                while (!isValid)
-                {
-                    var rows = _board.GetPieces(Color);
-                    var square = rows.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
 
-                    var newX = square.X + square.GetVerticalDirection();
-                    var newY = square.Y + GetRandoHorizontalDirection();
-
-                    isValid = _board.Move(square, newX, newY);
-                }
-            }
-
-            _board.Print();
+            return lose;
         }
 
         private int GetRandoHorizontalDirection()

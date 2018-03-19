@@ -11,6 +11,8 @@ namespace gabi.checkers
         public bool IsChecker { get; set; }
         public PieceColor Color { get; }
 
+        public readonly String Id = Guid.NewGuid().ToString();
+
         public Piece(PieceColor color)
         {
             Color = color;

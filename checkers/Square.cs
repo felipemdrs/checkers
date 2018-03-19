@@ -59,6 +59,14 @@ namespace gabi.checkers
 
         public int GetVerticalDirection()
         {
+            if (Value.IsChecker)
+            {
+                Random rnd = new Random();
+                int value = rnd.Next(0, 2);
+
+                return value == 0 ? 1 : -1;
+            }
+
             return Value.Color == PieceColor.White ? 1 : -1;
         }
     }
